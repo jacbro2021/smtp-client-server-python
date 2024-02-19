@@ -61,4 +61,7 @@ class BadCmdSequenceException(Exception):
     def __init__(self):
         super().__init__("503 Bad sequence of commands")
 
-
+class HelloException(Exception):
+    """Exception to handle improperly formatted HELO command."""
+    def __init__(self):
+        super().__init__("Improper HELO greeting format")
