@@ -25,27 +25,30 @@ def greet(connection_socket: socket) -> bool:
     try:
         domain: str = clean_greeting(initial_response)
 
-        handshake_msg: str = "250 Hello " + domain + "pleased to meet you"
+        handshake_msg: str = "250 Hello " + domain + " pleased to meet you"
         connection_socket.send(handshake_msg.encode())
 
         return True
     except (WhitespaceException,
             HelloException
             ) as e:
-        # Send client Unrecognized command exception.
-        connection_socket.send(str(UnrecognizedCommandException()).encode())
+        # Print single line error message.
+        print(str(UnrecognizedCommandException()))
         return False
 
     except (ElementException,
             CRLFException,) as e:
-        # Send client syntax exception.
-        connection_socket.send(str(SyntaxException()).encode())
+        # Print single line error message.
+        print(str(SyntaxException()))
         return False
 
 def main():
     """
     The starting point for execution of the SMTP server.
     """
+    engine: ServerEngine = ServerEngine()
+    connection_exists: bool = False
+
     try:
         server_port: int = 9954
         server_socket = socket(AF_INET, SOCK_STREAM)
@@ -54,28 +57,42 @@ def main():
         print("Server listening on port 9954")
 
         while (True):
-            connection_socket = server_socket.accept()
+            # Accept socket.
+            connection_socket, address = server_socket.accept()
+            connection_exists = True
             print("connection opened")
 
-            while (not greet(connection_socket=connection_socket)):
-                # Continue calling greet.
-                pass
+            # Greet and terminate program if error occurs.
+            if (not greet(connection_socket=connection_socket)):
+                raise GreetingException()
 
             # Process SMTP messages.
             while (True):
+                # Decode command and check for quit.
                 command = connection_socket.recv(1024).decode()
-                print(command)
-
-                if (command == "QUIT\n"):
+                if (command[:4] == "QUIT"):
                     break
+             
+                # Parse command and send response if appropriate.
+                command_response = engine.parse(command)
+                print(repr(command_response))
+                # TODO: FIX BUG HERE.
+                if (not engine.get_reading_data()):
+                    connection_socket.send(command_response.encode())
 
             # Close socket.
+            closing_msg: str = "221 comp431sp24.cs.unc.edu closing connection"
+            connection_socket.send(closing_msg.encode())
             connection_socket.close()
+            connectin_exists = False
+            print("connection socket closed")
 
-    except KeyboardInterrupt:
+    except (GreetingException,
+            KeyboardInterrupt):
         pass
-
     finally:
+        if (connection_exists):
+            connection_socket.close()
         server_socket.close()
         print("Socket closed")
 

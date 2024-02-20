@@ -65,3 +65,8 @@ class HelloException(Exception):
     """Exception to handle improperly formatted HELO command."""
     def __init__(self):
         super().__init__("Improper HELO greeting format")
+
+class GreetingException(Exception):
+    """Exception to terminate the SMTP Server if an error occurs during the greeting."""
+    def __init__(self):
+        super().__init__("Greeting exception -- terminate program")

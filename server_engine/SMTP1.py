@@ -1,7 +1,6 @@
 # Jacob Brown
 # I pledge the Comp 431 honor code.
 
-import sys
 from pathlib import Path
 from enum import (Enum,
                   auto,
@@ -11,7 +10,6 @@ from server_engine.rcpt_to import parse as rcpt_to
 from server_engine.data_cmd import (parse as data_cmd, 
                       parse_data_terminator as terminator,
                       )
-    
 from server_engine.exceptions import (UnrecognizedCommandException,
                         SyntaxException,
                         BadCmdSequenceException,
@@ -40,9 +38,11 @@ class ServerEngine:
     message: str = ""
     # Flag to track if the data command has been terminated.
     data_terminated: bool = True
+    # Flag to track when data is being read from input.
+    reading_data: bool = False
 
 
-    def is_mail(line: str) -> bool:
+    def is_mail(self, line: str) -> bool:
         """
         Checks to see if the provided line is a mail_from_command.
 
@@ -60,7 +60,7 @@ class ServerEngine:
         except SyntaxException as e:
             return True
 
-    def is_rcpt(line: str) -> bool:
+    def is_rcpt(self, line: str) -> bool:
         """
         Checks to see if the provided line is a rcpt_to_command.
 
@@ -78,7 +78,7 @@ class ServerEngine:
         except SyntaxException as e:
             return True
 
-    def is_data(line: str) -> bool:
+    def is_data(self, line: str) -> bool:
         """
         Checks to see if the provided line is a Data command.
 
@@ -96,7 +96,7 @@ class ServerEngine:
         except SyntaxException as e:
             return True
 
-    def get_cmd_type(line: str) -> Cmd:
+    def get_cmd_type(self, line: str) -> Cmd:
         """
         Finds the command type of a given line, if one exists.
 
@@ -107,16 +107,16 @@ class ServerEngine:
         Returns:
             Cmd: either one of the three options from the Cmd enum defined above or None.
         """
-        if (is_mail(line)):
+        if (self.is_mail(line)):
             return Cmd.MAIL
-        elif (is_rcpt(line)):
+        elif (self.is_rcpt(line)):
             return Cmd.RCPT
-        elif (is_data(line)):
+        elif (self.is_data(line)):
             return Cmd.DATA
         else:
             return None
 
-    def retrieve_reverse_path(line: str) -> str:
+    def retrieve_reverse_path(self, line: str) -> str:
         """
         Takes in a mail from command and parses out the reverse path.
 
@@ -142,7 +142,7 @@ class ServerEngine:
 
         return line
 
-    def store_mail_from(line: str) -> None:
+    def store_mail_from(self, line: str) -> None:
         """
         Reformat the mail from command and store it in the sender global var.
 
@@ -150,10 +150,9 @@ class ServerEngine:
             line: The valid mail from cmd to be reformatted and saved in
                   memory.
         """
-        global sender
-        sender = f"From: {retrieve_reverse_path(line)}"
+        self.sender = f"From: {self.retrieve_reverse_path(line)}"
 
-    def store_rcpt_to(line: str) -> None:
+    def store_rcpt_to(self, line: str) -> None:
         """
         Reformat the rcpt to command and add it to the recipients list.
 
@@ -161,20 +160,18 @@ class ServerEngine:
             line: The valid rcpt to command to be reformatted and saved in
                   memory.
         """
-        global recipients
-        recipients.append(f"To: {retrieve_reverse_path(line)}")
+        self.recipients.append(f"To: {self.retrieve_reverse_path(line)}")
 
-    def store_data(line: str) -> None:
+    def store_data(self, line: str) -> None:
         """
         Append the line retrieved as input to the message.
 
         Args:
             line: Saves the arbitrary text of the SMTP message in memory.
         """
-        global message
-        message += line
+        self.message += line
 
-    def get_filepath(r_path: str) -> Path:
+    def get_filepath(self, r_path: str) -> Path:
         """
         Returns the filepath for a given reverse path parsed from a rcpt to
         command.
@@ -197,7 +194,7 @@ class ServerEngine:
 
         return Path(f"forward/{r_path}")
 
-    def save_message() -> None:
+    def save_message(self) -> None:
         """
         Saves the various parts of a valid SMTP message held in memory to
         a file. If this file does not already exist, then this func will 
@@ -205,17 +202,15 @@ class ServerEngine:
         just one, depending on how many RCPT TO: (recievers) the message
         is intended for.
         """
-        global sender, recipients, message
-
         # Create the smtp_message using the data stored in memory
-        smtp_message: str = f"{sender}\n"
-        for recipient in recipients:
+        smtp_message: str = f"{self.sender}\n"
+        for recipient in self.recipients:
             smtp_message += f"{recipient}\n"
-        smtp_message += message
+        smtp_message += self.message
         
         # Save message to appropriate file.
-        for recipient in recipients:
-            path: Path = get_filepath(recipient)
+        for recipient in self.recipients:
+            path: Path = self.get_filepath(recipient)
 
             if (path.exists()):
                 with path.open("a") as file:
@@ -224,20 +219,18 @@ class ServerEngine:
                 with path.open("w") as file:
                     file.write(smtp_message)
 
-    def reset_state() -> None:
+    def reset_state(self) -> None:
         """
         Erase any stored data in the sender, recipients, or message global
         variables. Designed to be used when an exception is raised at any 
         point in the input process.
         """
-        global state, sender, recipients, message
+        self.sender = ""
+        self.recipients.clear()
+        self.message = ""
+        self.state = 0
 
-        sender = ""
-        recipients.clear()
-        message = ""
-        state = 0
-
-    def validate_mail_state(cmd_type: Cmd, line: str) -> None:
+    def validate_mail_state(self, cmd_type: Cmd, line: str) -> str:
         """
         Validates input when a mail from command is expected and outputs
         the appropriate message.
@@ -245,18 +238,19 @@ class ServerEngine:
         Args:
             cmd_type: Cmd indicating the type of command that was input.
             line: The input command.
-        """
-        global state
 
+        Returns:
+            str: The appropriate success or error message.
+        """
         try:
             if ((cmd_type is None) or (cmd_type == Cmd.MAIL)):
                 # Call mail_from to handle the case where cmd_type is None. 
                 mail_from(line)
                 # Store the reverse path
-                store_mail_from(line)
+                self.store_mail_from(line)
                 # Indicate that the message was properly recieved and increment state
-                sys.stdout.write("250 OK\n")
-                state += 1
+                self.state += 1
+                return "250 OK"
 
             elif ((cmd_type == Cmd.RCPT) or (cmd_type == Cmd.DATA)):
                     raise BadCmdSequenceException
@@ -266,10 +260,10 @@ class ServerEngine:
                 BadCmdSequenceException,
                 ) as e:
             # Reset the state of the program and output the proper error.
-            reset_state()
-            sys.stdout.write(f"{str(e)}\n")
+            self.reset_state()
+            return str(e)
 
-    def validate_rcpt_state(cmd_type: Cmd, line: str) -> None:
+    def validate_rcpt_state(self, cmd_type: Cmd, line: str) -> str:
         """
         Validates input when the first rcpt to command is expected and 
         outputs the proper message. Saves the line in memory if properly formatted.
@@ -277,18 +271,19 @@ class ServerEngine:
         Args:
             cmd_type: The type of command input.
             line: The input that is currently being analyzed.
-        """
-        global state
 
+        Returns:
+            str: The appropriate success or error message.
+        """
         try:
             if ((cmd_type is None) or (cmd_type == Cmd.RCPT)):
                 # Call rcpt_to to throw proper error if cmd_type is None.
                 rcpt_to(line)
                 # Store the reverse path.
-                store_rcpt_to(line)
+                self.store_rcpt_to(line)
                 # Output the proper message and increment state.
-                sys.stdout.write("250 OK\n")
-                state += 1
+                self.state += 1
+                return "250 OK"
 
             elif ((cmd_type == Cmd.MAIL) or (cmd_type == Cmd.DATA)):
                 raise BadCmdSequenceException()
@@ -298,11 +293,11 @@ class ServerEngine:
                 BadCmdSequenceException,
                 ) as e:
             # Reset state to beginning and output the proper error.
-            reset_state()
-            sys.stdout.write(f"{str(e)}\n")
+            self.reset_state()
+            return str(e)
 
 
-    def validate_data_or_rcpt_state(cmd_type: Cmd, line: str) -> None:
+    def validate_data_or_rcpt_state(self, cmd_type: Cmd, line: str) -> str:
         """
         Validate input when either a data command or rcpt to command are expected.
         outputs the proper message and saves the input in memory if necessary.
@@ -310,22 +305,24 @@ class ServerEngine:
         Args:
             cmd_type: Cmd indicating what type of command the line is.
             line: the line recieved as input.
-        """
-        global state, data_terminated
 
+        Returns:
+            str: The appropriate success or error message.
+        """
         try:
             if ((cmd_type == Cmd.RCPT) or (cmd_type is None)):
                 # Validate that cmd_type is not None.
                 rcpt_to(line)
                 # Store the input in memory and output the proper message.
-                store_rcpt_to(line)
-                sys.stdout.write("250 OK\n")
+                self.store_rcpt_to(line)
+                return "250 OK"
 
             elif (cmd_type == Cmd.DATA):
                 # Output proper message and change state to accept incoming data.
-                sys.stdout.write("354 Start mail input; end with <CRLF>.<CRLF>\n")
-                data_terminated = False
-                state += 1
+                self.data_terminated = False
+                self.state += 1
+
+                return "354 Start mail input; end with <CRLF>.<CRLF>"
 
             else:
                 raise BadCmdSequenceException()
@@ -334,11 +331,10 @@ class ServerEngine:
                 SyntaxException,
                 BadCmdSequenceException,
                 ) as e:
-            reset_state()
-            sys.stdout.write(f"{str(e)}\n")
+            self.reset_state()
+            return str(e)
 
-
-    def validate_data_or_terminate_state(cmd_type: Cmd, line: str) -> None:
+    def validate_data_or_terminate_state(self, cmd_type: Cmd, line: str) -> str:
         """
         Validates input when either arbitrary text or the "." termination
         line are expected. Outputs any necessary messages and saves data
@@ -348,49 +344,67 @@ class ServerEngine:
         Args:
             cmd_type: Cmd indicating what type of command the line is.
             line: the line recieved as input.
-        """
-        global state, data_terminated
 
+        Returns:
+            str: The appropriate success or error message.
+        """
         if (terminator(line)):
             # Output proper message and flip data terminated flag to True.
-            sys.stdout.write("250 OK\n")
-            data_terminated = True
+            self.data_terminated = True
             # Save the message to the file system.
-            save_message()
+            self.save_message()
             # Clear out data from memory.
-            reset_state()
+            self.reset_state()
+            # Turn of reading data flag.
+            self.reading_data = False
+
+            return "250 OK"
 
         else:
             # Store data in memory.        
-            store_data(line)
+            self.reading_data = True
+            self.store_data(line)
+            return " "
 
-    def parse(line: str) -> None:
+    def parse(self, line: str) -> str:
         """
         Parses input and processes SMTP messages.
 
         Args: 
             line: The most recent line of input.
+
+        Returns:
+            str: The string containing the error or success message.
         """
-        global state
-        cmd_type: Cmd = get_cmd_type(line)
+        cmd_type: Cmd = self.get_cmd_type(line)
 
-        match state:
+        match self.state:
             case 0:
-                validate_mail_state(cmd_type, line)
+                return self.validate_mail_state(cmd_type, line)
             case 1: 
-                validate_rcpt_state(cmd_type, line)    
+                return self.validate_rcpt_state(cmd_type, line)    
             case 2:
-                validate_data_or_rcpt_state(cmd_type, line)
+                return self.validate_data_or_rcpt_state(cmd_type, line)
             case 3:
-                validate_data_or_terminate_state(cmd_type, line)
+                return self.validate_data_or_terminate_state(cmd_type, line)
 
-if __name__ == "__main__":
-    for line in sys.stdin:
-        # Print the line to the terminal.
-        sys.stdout.write(line)
-        # Parse the line.
-        parse(line)
+    def get_data_terminated(self) -> bool: 
+        """
+        Returns a boolean indicating if the the previous SMTP 
+        message was properly terminated
 
-    if (data_terminated == False):
-        # Print proper error for not terminating data cmd.
-        sys.stdout.write("501 Syntax error in parameters or arguments\n")
+        Returns:
+            bool: True if the message was terminated, False
+                  otherwise.
+        """
+        return self.data_terminated
+
+    def get_reading_data(self) -> bool:
+        """
+        Getter for the reading_data flag.
+
+        Returns:
+            reading_data: Boolean flag indicating if data is currently being read 
+                          from input.
+        """
+        return self.reading_data
