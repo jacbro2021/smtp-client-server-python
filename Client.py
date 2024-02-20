@@ -37,6 +37,15 @@ def main():
             res: str = client_socket.recv(1024).decode()
             print(res)
 
+            if (res[:3] == "354"):
+                for line in sys.stdin:
+                    client_socket.send(line.encode())
+
+                    if (line == ".\n"):
+                        print(client_socket.recv(1024).decode())
+                        break
+            
+
         closing_msg: str = client_socket.recv(1024).decode()
         print(closing_msg)
     finally:
