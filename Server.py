@@ -54,13 +54,11 @@ def main():
         server_socket = socket(AF_INET, SOCK_STREAM)
         server_socket.bind(("", server_port))
         server_socket.listen(1)
-        print("Server listening on port 9954")
 
         while (True):
             # Accept socket.
             connection_socket, address = server_socket.accept()
             connection_exists = True
-            print("connection opened")
 
             # Greet and terminate program if error occurs.
             if (not greet(connection_socket=connection_socket)):
@@ -73,19 +71,18 @@ def main():
                 if (command[:4] == "QUIT"):
                     break
              
-                # Parse command and send response if appropriate.
+                # Parse command and send a response.
                 command_response = engine.parse(command)
-                print(repr(command_response))
-                # TODO: FIX BUG HERE.
-                if (not engine.get_reading_data()):
+                if (command_response):
                     connection_socket.send(command_response.encode())
 
-            # Close socket.
+            # Send closing socket message.
             closing_msg: str = "221 comp431sp24.cs.unc.edu closing connection"
             connection_socket.send(closing_msg.encode())
+
+            # Close socket.
             connection_socket.close()
             connectin_exists = False
-            print("connection socket closed")
 
     except (GreetingException,
             KeyboardInterrupt):

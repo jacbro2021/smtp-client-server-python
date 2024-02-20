@@ -140,6 +140,9 @@ class ServerEngine:
         # Remove any trailing whitespace or newlines.
         line = line[:ind]
 
+        # Remove opening and closing <>.
+        line = line[1:len(line) - 1]
+
         return line
 
     def store_mail_from(self, line: str) -> None:
@@ -152,6 +155,17 @@ class ServerEngine:
         """
         self.sender = f"From: {self.retrieve_reverse_path(line)}"
 
+    def parse_domain(self, reverse_path: str) -> str:
+        """
+        Parses the domain from a valid reverse_path
+
+        Args:
+            reverse_path: An already validate reverse_path
+        """
+        while (reverse_path[0] != "@"):
+            reverse_path = reverse_path[1:]
+        return reverse_path[1:]
+
     def store_rcpt_to(self, line: str) -> None:
         """
         Reformat the rcpt to command and add it to the recipients list.
@@ -160,7 +174,10 @@ class ServerEngine:
             line: The valid rcpt to command to be reformatted and saved in
                   memory.
         """
-        self.recipients.append(f"To: {self.retrieve_reverse_path(line)}")
+        reverse_path: str = self.retrieve_reverse_path(line)
+        domain: str = self.parse_domain(reverse_path)
+        if domain not in self.recipients:
+            self.recipients.append(domain)
 
     def store_data(self, line: str) -> None:
         """
@@ -171,29 +188,6 @@ class ServerEngine:
         """
         self.message += line
 
-    def get_filepath(self, r_path: str) -> Path:
-        """
-        Returns the filepath for a given reverse path parsed from a rcpt to
-        command.
-
-        Args:
-            r_path: The reverse path parsed from the rcpt to command.
-        """
-        # Remove opening <.
-        ind: int = 0
-        while (r_path[ind] != "<"):
-            ind += 1
-        ind += 1
-        r_path = r_path[ind:]
-        
-        # Remove closing >.
-        ind = 0
-        while (r_path[ind] != ">"):
-            ind += 1
-        r_path = r_path[:ind]
-
-        return Path(f"forward/{r_path}")
-
     def save_message(self) -> None:
         """
         Saves the various parts of a valid SMTP message held in memory to
@@ -202,22 +196,16 @@ class ServerEngine:
         just one, depending on how many RCPT TO: (recievers) the message
         is intended for.
         """
-        # Create the smtp_message using the data stored in memory
-        smtp_message: str = f"{self.sender}\n"
-        for recipient in self.recipients:
-            smtp_message += f"{recipient}\n"
-        smtp_message += self.message
-        
         # Save message to appropriate file.
         for recipient in self.recipients:
-            path: Path = self.get_filepath(recipient)
+            path: Path = Path(f"forward/{recipient}")
 
             if (path.exists()):
                 with path.open("a") as file:
-                    file.write(smtp_message)
+                    file.write(self.message)
             else:
                 with path.open("w") as file:
-                    file.write(smtp_message)
+                    file.write(self.message)
 
     def reset_state(self) -> None:
         """
@@ -364,7 +352,7 @@ class ServerEngine:
             # Store data in memory.        
             self.reading_data = True
             self.store_data(line)
-            return " "
+            return None
 
     def parse(self, line: str) -> str:
         """
