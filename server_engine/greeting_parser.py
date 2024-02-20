@@ -3,7 +3,7 @@
 # I pledge the Comp 431 honor code.
 
 import sys
-from exceptions import (WhitespaceException,
+from server_engine.exceptions import (WhitespaceException,
                         ElementException,
                         CRLFException,
                         HelloException,)
@@ -194,26 +194,19 @@ def parse(line: str) -> str:
     command = line
     advance_curr_char()
 
-    try:
-        # Parse the 'HELO' portion of greeting.
-        helo("H")
-        # Parse for whitespace.
-        whitespace()
-        # Parse the domain.
-        domain()
-        # Jump through any nullspace.
-        nullspace()
-        # Check for newline.
-        newline()
+    # Parse the 'HELO' portion of greeting.
+    helo("H")
+    # Parse for whitespace.
+    whitespace()
+    # Parse the domain.
+    domain()
+    # Jump through any nullspace.
+    nullspace()
+    # Check for newline.
+    newline()
 
-        return stripped_domain(line)
+    return stripped_domain(line)
 
-    except (WhitespaceException,
-            ElementException,
-            CRLFException,
-            HelloException,) as e:
-            print(e)
-                       
 if __name__ == "__main__":
     line: str = input() + "\n"
     parse(line=line)
