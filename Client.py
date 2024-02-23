@@ -7,6 +7,9 @@ import sys
 from client_engine.reverse_path import parse as parse_path
 from client_engine.exceptions import SMTPException
 
+# Default time to wait between sending TCP messages.
+wait_time: int = 0.01
+
 def parse_from() -> str:
     """
     Prompt the user to input the From: path and parse the path entered
@@ -146,26 +149,23 @@ def main():
         # Send 'To' message.
         to_msg: str = "To: "
         for recipient in to_path:
-            to_msg += f"{recipient}, "
+            to_msg += f"<{recipient}>, "
         to_msg = to_msg[:len(to_msg)-2] 
         to_msg = f"{to_msg}\n"
         client_socket.send(to_msg.encode())
-
+        
         # Send subject line.
         subject_line: str = f"Subject: {subject}\n"
         client_socket.send(subject_line.encode())
-        print("sent subject")
 
         # Send a blank line.
         blank: str = "\n"
         client_socket.send(blank.encode())
-        print("sent blank")
 
         # Send message body.
         for line in message:
             line += "\n"
             client_socket.send(line.encode())
-        print("send message")
 
         # Send period to end message transmission.
         period: str = ".\n"
