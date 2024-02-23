@@ -42,6 +42,36 @@ def greet(connection_socket: socket) -> bool:
         print(str(SyntaxException()))
         return False
 
+def parse_message(msg: str) -> list[str]:
+    """
+    parses decoded TCP messages and breaks them up 
+    into separate messages according to newlines
+
+    Args:
+        msg: A string message recieved from the TCP socket.
+
+    Returns:
+        list[str]: The part of the received message up to the first
+             newline.
+    """
+    # Split message into array of str's.
+    split_msg = msg.split("\n")
+
+    final_msg: list[str] = []
+
+    # Add '\n' to each individual message.
+    index: int = 0
+    while (index < len(split_msg)):
+        message = split_msg[index]
+        if (message == "" and index == (len(split_msg) - 1)):
+            break;
+        message = message + "\n"
+        final_msg.append(message)
+        index += 1
+
+    # Reeturn list of commands.
+    return final_msg
+        
 def main():
     """
     The starting point for execution of the SMTP server.
@@ -70,11 +100,15 @@ def main():
                 command = connection_socket.recv(1024).decode()
                 if (command[:4] == "QUIT"):
                     break
-             
-                # Parse command and send a response.
-                command_response = engine.parse(command)
-                if (command_response):
-                    connection_socket.send(command_response.encode())
+
+                # Split command into list of str's.
+                split_command: list[str] = parse_message(command) 
+                for cmd in split_command:
+                    # Parse command and send a response.
+                    command_response = engine.parse(cmd)
+
+                    if (command_response):
+                        connection_socket.send(command_response.encode())
 
             # Send closing socket message.
             closing_msg: str = "221 comp431sp24.cs.unc.edu closing connection"
@@ -91,7 +125,6 @@ def main():
         if (connection_exists):
             connection_socket.close()
         server_socket.close()
-        print("Socket closed")
 
 if __name__ == "__main__":
     main()
