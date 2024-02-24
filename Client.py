@@ -185,9 +185,9 @@ def main():
         if (quit_res[:3] != "221"):
             raise SMTPException("Failed to close connection to server.")
 
-    except SMTPException as e:
+    except (SMTPException,
+            error) as e:
         print(str(e))
-
     finally:
         client_socket.close()
 
