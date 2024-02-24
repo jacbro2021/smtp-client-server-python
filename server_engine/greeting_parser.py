@@ -3,10 +3,17 @@
 # I pledge the Comp 431 honor code.
 
 import sys
-from server_engine.exceptions import (WhitespaceException,
+from server_engine.exceptions import (MailFromCmdException,
+                        WhitespaceException,
+                        PathException,
+                        MailboxException,
+                        StringException,
                         ElementException,
                         CRLFException,
-                        HelloException,)
+                        UnrecognizedCommandException,
+                        SyntaxException,
+                        )
+
                        
 # The command input by the user.
 command: str = ""
@@ -193,19 +200,30 @@ def parse(line: str) -> str:
     
     command = line
     advance_curr_char()
+    try:
+        # Parse the 'HELO' portion of greeting.
+        helo("H")
+        # Parse for whitespace.
+        whitespace()
+        # Parse the domain.
+        domain()
+        # Jump through any nullspace.
+        nullspace()
+        # Check for newline.
+        newline()
 
-    # Parse the 'HELO' portion of greeting.
-    helo("H")
-    # Parse for whitespace.
-    whitespace()
-    # Parse the domain.
-    domain()
-    # Jump through any nullspace.
-    nullspace()
-    # Check for newline.
-    newline()
+        return stripped_domain(line)
+    except (MailFromCmdException,
+            WhitespaceException,
+            ) as e:
+        raise UnrecognizedCommandException()
+    except (PathException,
+                MailboxException,
+                StringException,
+                ElementException,
+                CRLFException) as e:
+        raise SyntaxException()
 
-    return stripped_domain(line)
 
 if __name__ == "__main__":
     line: str = input() + "\n"

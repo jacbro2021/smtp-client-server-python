@@ -3,6 +3,7 @@
 # I pledge the Comp 431 honor code.
 
 from socket import *
+import sys
 from server_engine.exceptions import *
 from server_engine.greeting_parser import parse as clean_greeting
 from server_engine.SMTP1 import ServerEngine
@@ -29,17 +30,9 @@ def greet(connection_socket: socket) -> bool:
         connection_socket.send(handshake_msg.encode())
 
         return True
-    except (WhitespaceException,
-            HelloException
-            ) as e:
-        # Print single line error message.
-        print(str(UnrecognizedCommandException()))
-        return False
-
-    except (ElementException,
-            CRLFException,) as e:
-        # Print single line error message.
-        print(str(SyntaxException()))
+    except (UnrecognizedCommandException,
+            SyntaxException,) as e:
+        connection_socket.send(str(e).encode())
         return False
 
 def parse_message(msg: str) -> list[str]:
@@ -77,13 +70,16 @@ def main():
     The starting point for execution of the SMTP server.
     """
     engine: ServerEngine = ServerEngine()
+    socket_exists: bool = False
     connection_exists: bool = False
 
     try:
-        server_port: int = 9954
+        server_port: int = int(sys.argv[1])
         server_socket = socket(AF_INET, SOCK_STREAM)
+        server_socket.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
         server_socket.bind(("", server_port))
         server_socket.listen(1)
+        socket_exists = True
 
         while (True):
             # Accept socket.
@@ -118,13 +114,17 @@ def main():
             connection_socket.close()
             connectin_exists = False
 
-    except (GreetingException,
-            KeyboardInterrupt):
+    except KeyboardInterrupt:
         pass
+    except (error,
+            GreetingException,
+            IndexError,) as e:
+        print(str(e))
     finally:
         if (connection_exists):
             connection_socket.close()
-        server_socket.close()
+        if (socket_exists):
+            server_socket.close()
 
 if __name__ == "__main__":
     main()

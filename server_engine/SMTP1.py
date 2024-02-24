@@ -375,24 +375,3 @@ class ServerEngine:
                 return self.validate_data_or_rcpt_state(cmd_type, line)
             case 3:
                 return self.validate_data_or_terminate_state(cmd_type, line)
-
-    def get_data_terminated(self) -> bool: 
-        """
-        Returns a boolean indicating if the the previous SMTP 
-        message was properly terminated
-
-        Returns:
-            bool: True if the message was terminated, False
-                  otherwise.
-        """
-        return self.data_terminated
-
-    def get_reading_data(self) -> bool:
-        """
-        Getter for the reading_data flag.
-
-        Returns:
-            reading_data: Boolean flag indicating if data is currently being read 
-                          from input.
-        """
-        return self.reading_data
