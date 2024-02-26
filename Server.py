@@ -119,7 +119,7 @@ def main():
     except (error,
             GreetingException,
             IndexError,) as e:
-        print(str(e))
+        sys.stdout.write(f"{str(e)}\n")
     finally:
         if (connection_exists):
             connection_socket.close()
