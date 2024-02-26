@@ -21,7 +21,7 @@ def parse_from() -> str:
     cleaned_path: str = None
     if (not cleaned_path):
         while(not cleaned_path):
-            print("From:")
+            sys.stdout.write("From:\n")
             line: str = input() + "\n"
             cleaned_path = parse_path(line)
     return cleaned_path
@@ -36,13 +36,14 @@ def parse_to() -> list[str]:
     cleaned_paths: list[str] = None
     if (not cleaned_paths):
         while(not cleaned_paths):
-            print("To:")
+            sys.stdout.write("To:\n")
             paths: list[str] = input().split(",")
             cleaned_paths = []
             
             for path in paths:
                 # Strip off any whitespace.
-                path = path.strip()
+                path = path.lstrip(" ")
+                path = path.lstrip("\t")
                 # Validate the path.
                 cleaned_path: str = parse_path(path + "\n")
 
@@ -61,7 +62,7 @@ def fetch_subject() -> str:
     Returns:
         str: the subject input by the user.
     """
-    print("Subject:")
+    sys.stdout.write("Subject:\n")
     return input()
 
 def fetch_message() -> list[str]:
@@ -71,7 +72,7 @@ def fetch_message() -> list[str]:
     Returns:
         list[str]: a list containing each line of the email.
     """
-    print("Message:")
+    sys.stdout.write("Message:\n")
     line: str = input()
 
     message: list[str] = []
@@ -187,7 +188,7 @@ def main():
 
     except (SMTPException,
             error) as e:
-        print(str(e))
+        sys.stdout.write(f"{str(e)}\n")
     finally:
         client_socket.close()
 

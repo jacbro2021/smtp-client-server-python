@@ -227,7 +227,7 @@ def parse(line: str) -> str:
                 StringException,
                 ElementException,
                 CRLFException) as e:
-        print(str(e))
+        sys.stdout.write(f"{str(e)}\n")
         return None
 
 if __name__ == "__main__":
