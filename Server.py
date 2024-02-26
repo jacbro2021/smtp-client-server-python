@@ -104,7 +104,6 @@ def main():
                 # Split command into list of str's.
                 split_command: list[str] = parse_message(command) 
                 for cmd in split_command:
-                    print(repr(split_command))
                     # Parse command and send a response.
                     command_response = engine.parse(cmd) 
 
