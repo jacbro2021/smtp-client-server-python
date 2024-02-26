@@ -2,6 +2,7 @@
 # I pledge the Comp 431 honor code.
 
 from pathlib import Path
+import os
 from enum import (Enum,
                   auto,
                   )
@@ -218,14 +219,10 @@ class ServerEngine:
         """
         # Save message to appropriate file.
         for recipient in self.recipients:
-            path: Path = Path(f"forward/{recipient}")
+            path = os.path.dirname(os.path.abspath(__file__)) + "/../forward/" + recipient
 
-            if (path.exists()):
-                with path.open("a") as file:
-                    file.write(self.message)
-            else:
-                with path.open("w") as file:
-                    file.write(self.message)
+            with open(path, "a") as f:
+                f.write(self.message)
 
     def reset_state(self) -> None:
         """
