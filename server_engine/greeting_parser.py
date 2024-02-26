@@ -84,7 +84,6 @@ def newline() -> None:
         CRLFException: if curr_char is not a newline character.
     """
     if (curr_char != "\n"):
-        print(ord(curr_char))
         raise CRLFException()
 
 def domain() -> None:
