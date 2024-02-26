@@ -108,7 +108,7 @@ def main():
             raise SMTPException()
 
         # Send greeting to server.
-        initial_res: str = "HELO cs.unc.edu\n"
+        initial_res: str = f"HELO {gethostname()}\n"
         client_socket.send(initial_res.encode())
 
         # Receive server secondary greeting.
