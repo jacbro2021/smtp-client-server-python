@@ -21,19 +21,20 @@ def greet(connection_socket: socket) -> bool:
     greeting_msg: str = f"220 {gethostname()}\n"
     connection_socket.send(greeting_msg.encode())
 
-    # Parse and validate client greeting.
-    initial_response: str = connection_socket.recv(1024).decode()
-    try:
-        domain: str = clean_greeting(initial_response)
+    while (True):
+        # Parse and validate client greeting.
+        initial_response: str = connection_socket.recv(1024).decode()
+        try:
+            domain: str = clean_greeting(initial_response)
 
-        handshake_msg: str = "250 Hello " + domain + " pleased to meet you\n"
-        connection_socket.send(handshake_msg.encode())
+            handshake_msg: str = "250 Hello " + domain + " pleased to meet you\n"
+            connection_socket.send(handshake_msg.encode())
 
-        return True
-    except (UnrecognizedCommandException,
-            SyntaxException,) as e:
-        connection_socket.send(str(e).encode())
-        return False
+            return True
+        except (UnrecognizedCommandException,
+                SyntaxException,) as e:
+            error_str: str = str(e) + "\n"
+            connection_socket.send(error_str.encode())
 
 def parse_message(msg: str) -> list[str]:
     """
