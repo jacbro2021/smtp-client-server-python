@@ -73,7 +73,6 @@ def main():
     """
     The starting point for execution of the SMTP server.
     """
-    engine: ServerEngine = ServerEngine()
     socket_exists: bool = False
     connection_exists: bool = False
 
@@ -89,6 +88,9 @@ def main():
             # Accept socket.
             connection_socket, address = server_socket.accept()
             connection_exists = True
+           
+            # Create parsing engine.
+            engine: ServerEngine = ServerEngine()
 
             # Greet and terminate program if error occurs.
             if (not greet(connection_socket=connection_socket)):
