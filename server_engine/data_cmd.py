@@ -77,7 +77,7 @@ def newline() -> None:
     Raises:
         CRLFException: if curr_char is not a newline character.
     """
-    if (curr_char != "\n"):
+    if (curr_char != "\n" and curr_char != "\r"):
         raise CRLFException()
 
 def parse(line: str) -> None:

@@ -12,6 +12,7 @@ from server_engine.exceptions import (MailFromCmdException,
                         CRLFException,
                         UnrecognizedCommandException,
                         SyntaxException,
+                        HelloException
                         )
 
                        
@@ -212,7 +213,7 @@ def parse(line: str) -> str:
         newline()
 
         return stripped_domain(line)
-    except (MailFromCmdException,
+    except (HelloException,
             WhitespaceException,
             ) as e:
         raise UnrecognizedCommandException()

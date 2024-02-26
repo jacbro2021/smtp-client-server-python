@@ -18,7 +18,7 @@ def greet(connection_socket: socket) -> bool:
     Returns:
         bool: True if the connection was successful, false otherwise
     """
-    greeting_msg: str = "220 comp431sp24.cs.unc.edu"
+    greeting_msg: str = f"220 {gethostname()}\n"
     connection_socket.send(greeting_msg.encode())
 
     # Parse and validate client greeting.
@@ -26,7 +26,7 @@ def greet(connection_socket: socket) -> bool:
     try:
         domain: str = clean_greeting(initial_response)
 
-        handshake_msg: str = "250 Hello " + domain + " pleased to meet you"
+        handshake_msg: str = "250 Hello " + domain + " pleased to meet you\n"
         connection_socket.send(handshake_msg.encode())
 
         return True
@@ -100,14 +100,16 @@ def main():
                 # Split command into list of str's.
                 split_command: list[str] = parse_message(command) 
                 for cmd in split_command:
+                    print(repr(split_command))
                     # Parse command and send a response.
-                    command_response = engine.parse(cmd)
+                    command_response = engine.parse(cmd) 
 
                     if (command_response):
+                        command_response += "\n"
                         connection_socket.send(command_response.encode())
 
             # Send closing socket message.
-            closing_msg: str = "221 comp431sp24.cs.unc.edu closing connection"
+            closing_msg: str = "221 comp431sp24.cs.unc.edu closing connection\n"
             connection_socket.send(closing_msg.encode())
 
             # Close socket.
@@ -117,8 +119,7 @@ def main():
     except KeyboardInterrupt:
         pass
     except (error,
-            GreetingException,
-            IndexError,) as e:
+            Exception) as e:
         sys.stdout.write(f"{str(e)}\n")
     finally:
         if (connection_exists):
