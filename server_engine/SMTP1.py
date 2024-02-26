@@ -6,6 +6,7 @@ from enum import (Enum,
                   auto,
                   )
 from server_engine.mail_from import parse as mail_from
+from server_engine.greeting_parser import parse as clean_greeting
 from server_engine.rcpt_to import parse as rcpt_to
 from server_engine.data_cmd import (parse as data_cmd, 
                       parse_data_terminator as terminator,
@@ -23,6 +24,7 @@ class Cmd(Enum):
     MAIL = auto()
     RCPT = auto()
     DATA = auto()
+    GREET = auto()
 
 class ServerEngine:
 
@@ -41,6 +43,22 @@ class ServerEngine:
     # Flag to track when data is being read from input.
     reading_data: bool = False
 
+    def is_greeting(self, line: str) -> bool:
+        """
+        Checks to see if the provided line a greeting command.
+
+        Args:
+            line: the line to check.
+
+        Returns: 
+            bool: True if the line is a greeting, false otherwise.
+        """
+        try:
+            if (line[:4] == "HELO"):
+                return True
+            return False
+        except Exception:
+            return False
 
     def is_mail(self, line: str) -> bool:
         """
@@ -113,6 +131,8 @@ class ServerEngine:
             return Cmd.RCPT
         elif (self.is_data(line)):
             return Cmd.DATA
+        elif (self.is_greeting(line)):
+            return Cmd.GREET
         else:
             return None
 
@@ -240,7 +260,7 @@ class ServerEngine:
                 self.state += 1
                 return "250 OK"
 
-            elif ((cmd_type == Cmd.RCPT) or (cmd_type == Cmd.DATA)):
+            elif ((cmd_type == Cmd.RCPT) or (cmd_type == Cmd.DATA) or (cmd_type == Cmd.GREET)):
                     raise BadCmdSequenceException
 
         except (UnrecognizedCommandException,
@@ -273,7 +293,7 @@ class ServerEngine:
                 self.state += 1
                 return "250 OK"
 
-            elif ((cmd_type == Cmd.MAIL) or (cmd_type == Cmd.DATA)):
+            elif ((cmd_type == Cmd.MAIL) or (cmd_type == Cmd.DATA) or (cmd_type == Cmd.GREET)):
                 raise BadCmdSequenceException()
 
         except (UnrecognizedCommandException,
