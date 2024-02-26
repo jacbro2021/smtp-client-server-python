@@ -25,7 +25,10 @@ def greet(connection_socket: socket) -> bool:
         # Parse and validate client greeting.
         initial_response: str = connection_socket.recv(1024).decode()
         try:
-            domain: str = clean_greeting(initial_response)
+            if (initial_response[:4] != "HELO"):
+                raise UnrecognizedCommandException()
+
+            domain: str = initial_response[4:].strip()
 
             handshake_msg: str = "250 Hello " + domain + " pleased to meet you\n"
             connection_socket.send(handshake_msg.encode())
