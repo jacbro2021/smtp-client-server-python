@@ -87,15 +87,13 @@ def fetch_message() -> list[str]:
 
     return message
 
-
-def get_base64_encoding(path: str) -> str:
+def fetch_attachment() -> str:
     """
-    takes in a path to an image and returns the base 64 encoding 
-    for that image.
+    Prompts the user to enter a path to
+    an attachment and returns their response.
     """
-    with open(path, "rb") as f:
-        return base64.b64encode(f.read()).decode()
-        
+    sys.stdout.write("Attachment:\n")
+    return input()
 
 def main():
     """
@@ -105,6 +103,7 @@ def main():
     to_path: list[str] = parse_to()
     subject: str = fetch_subject()
     message: list[str] = fetch_message()
+    attachment: str = fetch_attachment()
 
     mime_message = MIMEMultipart()
 
@@ -126,6 +125,11 @@ def main():
     for text in message:
         message_text += text
     mime_message.attach(MIMEText(message_text, "plain"))
+
+    # Format attachments.
+    with open(attachment, "rb") as f:
+        img = MIMEImage(f.read(), name=attachment)
+    mime_message.attach(img)
 
     # Get the mime message as a string.
     mime_message_str = mime_message.as_string()
